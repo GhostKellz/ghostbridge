@@ -1,0 +1,106 @@
+syntax = "proto3";
+package ghost.chain.v1;
+
+import "common.proto";
+
+service GhostChainService {
+  rpc ResolveDomain(DomainQuery) returns (DomainResponse);
+  rpc RegisterDomain(DomainRegistration) returns (TransactionResponse);
+  rpc GetAccount(AccountQuery) returns (AccountResponse);
+  rpc GetBalance(BalanceQuery) returns (BalanceResponse);
+  rpc GetBlock(BlockQuery) returns (BlockResponse);
+  rpc GetLatestBlock(ghost.common.v1.Empty) returns (BlockResponse);
+  rpc SubscribeBlocks(ghost.common.v1.Empty) returns (stream BlockResponse);
+  rpc SubscribeDomainChanges(DomainSubscription) returns (stream DomainEvent);
+}
+
+message DomainQuery {
+  string domain = 1;
+  repeated string record_types = 2;
+}
+
+message DomainResponse {
+  string domain = 1;
+  repeated DNSRecord records = 2;
+  string owner_id = 3;
+  bytes signature = 4;
+  uint64 timestamp = 5;
+  uint32 ttl = 6;
+}
+
+message DNSRecord {
+  string type = 1;
+  string value = 2;
+  uint32 priority = 3;
+  uint32 ttl = 4;
+}
+
+message DomainRegistration {
+  string domain = 1;
+  string owner_id = 2;
+  repeated DNSRecord initial_records = 3;
+  uint32 duration_blocks = 4;
+}
+
+message TransactionResponse {
+  string transaction_id = 1;
+  string block_hash = 2;
+  uint64 block_height = 3;
+  ghost.common.v1.Error error = 4;
+}
+
+message AccountQuery {
+  string account_id = 1;
+}
+
+message AccountResponse {
+  string account_id = 1;
+  uint64 balance = 2;
+  uint64 nonce = 3;
+  repeated string owned_domains = 4;
+}
+
+message BalanceQuery {
+  string account_id = 1;
+}
+
+message BalanceResponse {
+  uint64 balance = 1;
+  uint64 locked_balance = 2;
+}
+
+message BlockQuery {
+  oneof identifier {
+    uint64 height = 1;
+    string hash = 2;
+  }
+}
+
+message BlockResponse {
+  uint64 height = 1;
+  string hash = 2;
+  string parent_hash = 3;
+  uint64 timestamp = 4;
+  repeated Transaction transactions = 5;
+}
+
+message Transaction {
+  string id = 1;
+  string from = 2;
+  string to = 3;
+  uint64 amount = 4;
+  bytes data = 5;
+}
+
+message DomainSubscription {
+  repeated string domains = 1;
+  repeated string event_types = 2;
+}
+
+message DomainEvent {
+  string domain = 1;
+  string event_type = 2;
+  string transaction_id = 3;
+  uint64 timestamp = 4;
+  map<string, string> metadata = 5;
+}

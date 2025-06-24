@@ -1,0 +1,48 @@
+syntax = "proto3";
+package ghost.dns.v1;
+
+import "common.proto";
+
+service GhostDNSService {
+  rpc GetStats(ghost.common.v1.Empty) returns (DNSStats);
+  rpc FlushCache(CacheFlushRequest) returns (ghost.common.v1.Empty);
+  rpc UpdateZone(ZoneUpdate) returns (ghost.common.v1.Empty);
+  rpc GetCacheStatus(ghost.common.v1.Empty) returns (CacheStats);
+}
+
+message DNSStats {
+  uint64 queries_total = 1;
+  uint64 cache_hits = 2;
+  uint64 blockchain_queries = 3;
+  double avg_response_time_ms = 4;
+  uint64 active_connections = 5;
+  map<string, uint64> query_types = 6;
+  map<string, uint64> response_codes = 7;
+}
+
+message CacheFlushRequest {
+  repeated string domains = 1;
+  bool flush_all = 2;
+}
+
+message ZoneUpdate {
+  string zone = 1;
+  repeated ZoneRecord records = 2;
+  bool replace_all = 3;
+}
+
+message ZoneRecord {
+  string name = 1;
+  string type = 2;
+  string value = 3;
+  uint32 ttl = 4;
+}
+
+message CacheStats {
+  uint64 entries_count = 1;
+  uint64 memory_bytes = 2;
+  uint64 hits_total = 3;
+  uint64 misses_total = 4;
+  double hit_rate = 5;
+  uint64 evictions_total = 6;
+}
