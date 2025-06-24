@@ -388,19 +388,32 @@ pub const ResponseCache = struct {
 
 ---
 
-## 🎯 Project Name Options
+🌐 DNS Resolution Pipeline
 
-1. **`ghostbridge`** ✨ (Recommended)
-2. **`ghost-rpc`**  
-3. **`ghostlink`**
-4. **`ghostnet-bridge`**
-5. **`ghost-grpc`**
+GhostBridge powers real-time DNS resolution over gRPC, acting as the glue between:
 
-**Why `ghostbridge`:**
-- Clear purpose: bridges Zig ↔ Rust
-- Follows your naming convention
-- Easy to remember and type
-- Available on GitHub/crates.io
+🧠 Zig-based GhostDNS resolver (DoQ/QUIC/HTTP3)
+
+🔗 Rust-based GhostChain node (domain ↔ identity ↔ ledger)
+
+🌎 Web2/Web3 clients (browsers, VPNs, CLI
+
+### 🌐 DNS Resolution Pipeline
+
+GhostBridge enables seamless DNS lookups by routing Web2/Web3 client queries through a high-speed Zig resolver to the Rust-based GhostChain backend. This unlocks real-time domain → identity → ownership resolution over QUIC, DoQ, and HTTP/3.
+
+```text
++-----------+     gRPC     +----------------+     Ledger Lookup    +------------------+
+| Web Client| ─────────▶  |  GhostBridge   | ───────────────────▶ |  GhostChain Node |
++-----------+             +----------------+                       +------------------+
+                          ▲         ▲
+                          |         |
+               DoQ / QUIC / HTTP3   |
+                          |         |
+                     +--------+     |
+                     |GhostDNS| ◀───┘
+                     +--------+
+```
 
 ---
 
