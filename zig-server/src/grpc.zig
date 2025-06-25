@@ -29,7 +29,7 @@ pub const Handler = struct {
         };
 
         const methods_info = @typeInfo(@TypeOf(methods));
-        inline for (methods_info.Struct.fields) |field| {
+        inline for (methods_info.@"struct".fields) |field| {
             try service.methods.put(field.name, @field(methods, field.name));
         }
 
@@ -41,7 +41,7 @@ pub const Handler = struct {
         const message = try parseGrpcMessage(frame.data);
         
         // Extract service and method from path
-        const path_parts = std.mem.split(u8, message.path, "/");
+        const path_parts = std.mem.splitScalar(u8, message.path, '/');
         var service_name: []const u8 = "";
         var method_name: []const u8 = "";
         

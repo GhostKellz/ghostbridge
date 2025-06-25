@@ -1,0 +1,1 @@
+Arc<(dyn Fn() -> Box<(dyn futures::Future<Output = std::result::Result<T, tonic::transport::Error>> + std::marker::Send + 'static)> + std::marker::Send + Sync + 'static)>

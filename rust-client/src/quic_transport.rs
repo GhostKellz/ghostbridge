@@ -8,7 +8,7 @@ use tracing::{debug, error, info};
 use crate::{
     client::ClientConfig as GhostClientConfig,
     ghost::chain::v1::{DomainQuery, DomainResponse},
-    GhostBridgeError, Result,
+    GhostBridgeError, client::Result,
 };
 
 pub struct QuicTransport {
@@ -66,13 +66,13 @@ impl QuicTransport {
         
         // Send request
         send.write_all(&request_bytes).await
-            .map_err(|e| GhostBridgeError::Quic(e.into()))?;
+            .map_err(GhostBridgeError::QuicWrite)?;
         send.finish()
-            .map_err(|e| GhostBridgeError::Quic(e.into()))?;
+            .map_err(GhostBridgeError::QuicClosed)?;
 
         // Read response
         let response_bytes = recv.read_to_end(1024 * 1024).await
-            .map_err(|e| GhostBridgeError::Quic(e.into()))?;
+            .map_err(GhostBridgeError::QuicRead)?;
 
         // Deserialize response
         let response = deserialize_domain_response(&response_bytes)?;
@@ -90,9 +90,9 @@ impl QuicTransport {
 
         // Send subscription request
         send.write_all(b"SUBSCRIBE_BLOCKS").await
-            .map_err(|e| GhostBridgeError::Quic(e.into()))?;
+            .map_err(GhostBridgeError::QuicWrite)?;
         send.finish()
-            .map_err(|e| GhostBridgeError::Quic(e.into()))?;
+            .map_err(GhostBridgeError::QuicClosed)?;
 
         // Return stream wrapper
         Ok(QuicBlockStream { recv })

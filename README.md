@@ -376,7 +376,7 @@ pub const ResponseCache = struct {
 
 ### **Week 3: Integration**
 - [ ] GhostChain integration
-- [ ] GhostDNS integration  
+- [ ] ZNS + CNS integration (web3 + web3 dns) 
 - [ ] End-to-end testing
 - [ ] Performance benchmarking
 

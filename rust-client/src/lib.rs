@@ -1,3 +1,12 @@
+// Core modules
+pub mod client;
+pub mod connection_pool;
+pub mod quic_transport;
+
+// Phase 2: Crypto integration
+pub mod crypto;
+
+// Generated protobuf modules
 pub mod ghost {
     pub mod common {
         pub mod v1 {
@@ -17,10 +26,6 @@ pub mod ghost {
         }
     }
 }
-
-mod client;
-mod connection_pool;
-mod quic_transport;
 
 pub use client::{GhostBridgeClient, GhostBridgeError};
 pub use connection_pool::ConnectionPool;

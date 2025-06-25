@@ -1,4 +1,42 @@
+# Zig build artifacts
 /zig-cache/
 /zig-out/
 *.o
 *.exe
+
+# Zig server specific
+zig-server/.zig-cache/
+zig-server/zig-out/
+
+# Rust build artifacts
+rust-client/target/
+rust-client/Cargo.lock
+
+# General Rust artifacts
+target/
+Cargo.lock
+**/*.rs.bk
+
+# Generated protobuf files
+bindings/c/*.h
+bindings/c/*.c
+rust-client/src/proto/
+proto/*.rs
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp

@@ -30,8 +30,20 @@ pub enum GhostBridgeError {
     #[error("Invalid configuration: {0}")]
     Config(String),
     
-    #[error("QUIC error: {0}")]
-    Quic(#[from] quinn::ConnectionError),
+    #[error("Invalid URI: {0}")]
+    InvalidUri(#[from] http::uri::InvalidUri),
+    
+    #[error("QUIC connection error: {0}")]
+    QuicConnection(#[from] quinn::ConnectionError),
+    
+    #[error("QUIC write error: {0}")]
+    QuicWrite(#[from] quinn::WriteError),
+    
+    #[error("QUIC read error: {0}")]
+    QuicRead(#[from] quinn::ReadToEndError),
+    
+    #[error("QUIC stream closed: {0}")]
+    QuicClosed(#[from] quinn::ClosedStream),
 }
 
 pub type Result<T> = std::result::Result<T, GhostBridgeError>;
@@ -244,7 +256,8 @@ impl GhostBridgeClientBuilder {
                 self.config.pool_size,
                 self.config.clone(),
                 |config| async move {
-                    let channel = Channel::from_shared(config.endpoint.clone())?
+                    let channel = Channel::from_shared(config.endpoint.clone())
+                        .unwrap()
                         .timeout(config.request_timeout)
                         .connect()
                         .await?;
@@ -259,7 +272,8 @@ impl GhostBridgeClientBuilder {
                 self.config.pool_size,
                 self.config.clone(),
                 |config| async move {
-                    let channel = Channel::from_shared(config.endpoint.clone())?
+                    let channel = Channel::from_shared(config.endpoint.clone())
+                        .unwrap()
                         .timeout(config.request_timeout)
                         .connect()
                         .await?;

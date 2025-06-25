@@ -1,0 +1,4 @@
+cargo:rerun-if-changed=../proto/common.proto
+cargo:rerun-if-changed=../proto/ghostchain.proto
+cargo:rerun-if-changed=../proto/ghostdns.proto
+cargo:rerun-if-changed=../proto

@@ -1,0 +1,3 @@
+dyn futures::Future<Output = std::result::Result<T, tonic::transport::Error>> + std::marker::Send
+Box<dyn futures::Future<Output = std::result::Result<T, tonic::transport::Error>> + std::marker::Send>
+Pin<Box<Box<dyn futures::Future<Output = std::result::Result<T, tonic::transport::Error>> + std::marker::Send>>>
