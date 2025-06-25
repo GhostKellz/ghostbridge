@@ -1,9 +1,19 @@
-# GHOSTBRIDGE.md - gRPC Interoperability Layer
+# 👻️ Ghostbridge ⚡ - gRPC Interoperability Layer
 
 ## 🌉 GhostBridge: High-Performance gRPC Bridge
 
 ### Core Purpose
 Ultra-fast, type-safe gRPC communication layer bridging Zig infrastructure components with Rust blockchain nodes, enabling seamless Web5 ecosystem integration.
+--- 
+
+--- 
+![Built with Zig](https://img.shields.io/badge/Built%20with-Zig-f7a41d?logo=zig&logoColor=black)
+![Built with Rust](https://img.shields.io/badge/Built%20with-Rust-000000?logo=rust&logoColor=white)
+![gRPC Bridge](https://img.shields.io/badge/gRPC-Bridge-00C7B7?logo=grpc&logoColor=white)
+![DNS over QUIC](https://img.shields.io/badge/DNS-over--QUIC-1976D2?logo=cloudflare&logoColor=white)
+![ENS Support](https://img.shields.io/badge/ENS-Support-4A90E2?logo=ethereum&logoColor=white)
+![Built for Web3](https://img.shields.io/badge/Built%20for-Web3-29B6F6?logo=web3dotjs&logoColor=white)
+![Web2 Compatible](https://img.shields.io/badge/Web2-Compatible-9E9E9E?logo=internetexplorer&logoColor=white)
 
 ---
 
