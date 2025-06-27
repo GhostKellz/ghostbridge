@@ -3,6 +3,20 @@
     .version = "0.1.0",
     .fingerprint = 0x6c32a0af1c3ffcc0,
     .minimum_zig_version = "0.13.0",
+    .dependencies = .{
+        .zquic = .{
+            .url = "https://github.com/ghostkellz/zquic/archive/refs/heads/main.tar.gz",
+            .hash = "zquic-0.0.0-2rPds70RBACjqjpX56l2uBf_2-qCgIvU9X7sSKg8-lTM",
+        },
+        .tokioz = .{
+            .url = "https://github.com/ghostkellz/TokioZ/archive/refs/heads/main.tar.gz",
+            .hash = "TokioZ-0.0.0-DgtPReljAgAuGaoLtQCm_E-UA_7j_TAGQ8kkV-mtjz4V",
+        },
+        .realid = .{
+            .url = "https://github.com/ghostkellz/realid/archive/refs/heads/main.tar.gz",
+            .hash = "realid-0.3.0-noh2qQyBAABUzsPW8y6CYeOFF9TjbJIS_MW8wCbZgZ-9",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon", 

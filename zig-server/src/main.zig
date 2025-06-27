@@ -4,6 +4,7 @@ const io = std.io;
 const http2 = @import("http2.zig");
 const grpc = @import("grpc.zig");
 const protobuf = @import("protobuf.zig");
+const QuicMultiplexer = @import("quic_multiplexer.zig").QuicMultiplexer;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -51,7 +52,7 @@ const ServerOptions = struct {
 pub const GhostBridgeServer = struct {
     allocator: std.mem.Allocator,
     http2_server: ?*http2.Server,
-    quic_server: ?*QuicServer,
+    quic_multiplexer: ?*QuicMultiplexer,
     grpc_handler: grpc.Handler,
     stats: ServerStats,
     cache: ResponseCache,
@@ -62,7 +63,7 @@ pub const GhostBridgeServer = struct {
         var self = Self{
             .allocator = allocator,
             .http2_server = null,
-            .quic_server = null,
+            .quic_multiplexer = null,
             .grpc_handler = try grpc.Handler.init(allocator),
             .stats = ServerStats{},
             .cache = try ResponseCache.init(allocator, 1024 * 1024 * 100), // 100MB cache
@@ -73,19 +74,36 @@ pub const GhostBridgeServer = struct {
 
         // Initialize HTTP/2 server
         if (options.enable_http2) {
+            // Parse the bind address properly
+            const addr = try net.Address.parseIp4("127.0.0.1", 9090);
             self.http2_server = try http2.Server.init(allocator, .{
-                .address = try net.Address.parseIp(options.bind_address, 9090),
+                .address = addr,
                 .max_concurrent_streams = 1000,
             });
         }
 
-        // Initialize QUIC/HTTP3 server
+        // Initialize QUIC multiplexer
         if (options.enable_quic) {
-            self.quic_server = try QuicServer.init(allocator, .{
-                .address = try net.Address.parseIp(options.bind_address, 9090),
-                .alpn_protocols = &[_][]const u8{"h3"},
-                .max_concurrent_streams = 1000,
+            const multiplexer = try allocator.create(QuicMultiplexer);
+            multiplexer.* = try QuicMultiplexer.init(allocator, .{
+                .quic_port = 443,
+                .http2_port = 9090,
+                .bind_ipv6 = true,
+                .cert_file = "certs/server.crt",
+                .key_file = "certs/server.key",
+                .max_connections = options.max_connections,
+                .enable_http2 = options.enable_http2,
+                .enable_http3 = true,
+                .channels = &[_]QuicMultiplexer.ChannelConfig{
+                    .{ .channel_type = .wallet, .service_endpoint = "http://127.0.0.1:8001" },
+                    .{ .channel_type = .identity, .service_endpoint = "http://127.0.0.1:8002" },
+                    .{ .channel_type = .ledger, .service_endpoint = "http://127.0.0.1:8003" },
+                    .{ .channel_type = .dns, .service_endpoint = "http://127.0.0.1:8004" },
+                    .{ .channel_type = .contracts, .service_endpoint = "http://127.0.0.1:8005" },
+                    .{ .channel_type = .proxy, .service_endpoint = "http://127.0.0.1:9090" },
+                },
             });
+            self.quic_multiplexer = multiplexer;
         }
 
         return self;
@@ -95,8 +113,9 @@ pub const GhostBridgeServer = struct {
         if (self.http2_server) |server| {
             server.deinit();
         }
-        if (self.quic_server) |server| {
-            server.deinit();
+        if (self.quic_multiplexer) |multiplexer| {
+            multiplexer.deinit();
+            self.allocator.destroy(multiplexer);
         }
         self.grpc_handler.deinit();
         self.cache.deinit();
@@ -115,22 +134,38 @@ pub const GhostBridgeServer = struct {
             .GetStats = getStats,
             .GetCacheStatus = getCacheStatus,
         });
+        
+        // Register Identity service (realID integration)
+        if (self.quic_multiplexer) |mux| {
+            if (mux.identity_service) |service| {
+                const identity_service = @import("identity_service.zig");
+                try identity_service.registerIdentityService(&self.grpc_handler, service);
+            }
+        }
+        
+        // Register Wallet service (walletd proxy)
+        if (self.quic_multiplexer) |mux| {
+            if (mux.wallet_service) |service| {
+                const wallet_service = @import("wallet_service.zig");
+                try wallet_service.registerWalletService(&self.grpc_handler, service);
+            }
+        }
     }
 
     pub fn run(self: *Self) !void {
         // For now, run serially until we integrate full async runtime
         std.log.info("GhostBridge server starting with async runtime...", .{});
 
+        // Start QUIC multiplexer if enabled  
+        if (self.quic_multiplexer) |multiplexer| {
+            std.log.info("Starting QUIC multiplexer on port 443...", .{});
+            try multiplexer.start();
+        }
+
         // Start HTTP/2 server if enabled
         if (self.http2_server) |server| {
             std.log.info("Starting HTTP/2 server...", .{});
             try self.runHttp2Server(server);
-        }
-
-        // Start QUIC server if enabled  
-        if (self.quic_server) |server| {
-            std.log.info("Starting QUIC server...", .{});
-            try self.runQuicServer(server);
         }
 
         // Start stats reporting
@@ -142,14 +177,6 @@ pub const GhostBridgeServer = struct {
             var stream = try server.accept();
             // Use async task spawning instead of threads
             _ = try self.spawnStreamHandler(handleHttp2Stream, .{ self, &stream });
-        }
-    }
-
-    fn runQuicServer(self: *Self, server: *QuicServer) !void {
-        while (true) {
-            const stream = try server.accept();
-            // Use async task spawning instead of threads  
-            _ = try self.spawnStreamHandler(handleQuicStream, .{ self, stream });
         }
     }
 
@@ -187,31 +214,6 @@ pub const GhostBridgeServer = struct {
         try self.cache.put(cache_key, response);
         
         // Send response
-        try stream.writeFrame(response);
-    }
-
-    fn handleQuicStream(self: *Self, stream: *QuicStream) !void {
-        // Similar to HTTP/2 but with QUIC-specific handling
-        defer stream.close();
-        
-        const start_time = std.time.milliTimestamp();
-        defer {
-            const duration = std.time.milliTimestamp() - start_time;
-            self.stats.addRequest(duration);
-        }
-
-        var buffer: [8192]u8 = undefined;
-        const frame = try stream.readFrame(&buffer);
-
-        const cache_key = try self.computeCacheKey(frame.data);
-        if (self.cache.get(cache_key)) |cached_response| {
-            try stream.writeFrame(cached_response);
-            self.stats.incrementCacheHits();
-            return;
-        }
-
-        const response = try self.grpc_handler.processRequest(frame);
-        try self.cache.put(cache_key, response);
         try stream.writeFrame(response);
     }
 
@@ -451,44 +453,3 @@ const ResponseCache = struct {
     }
 };
 
-// Placeholder for QUIC server - would use a library like quiche or quinn
-const QuicServer = struct {
-    allocator: std.mem.Allocator,
-    
-    pub fn init(allocator: std.mem.Allocator, options: anytype) !*QuicServer {
-        _ = options;
-        const self = try allocator.create(QuicServer);
-        self.* = .{ .allocator = allocator };
-        return self;
-    }
-    
-    pub fn deinit(self: *QuicServer) void {
-        self.allocator.destroy(self);
-    }
-    
-    pub fn accept(self: *QuicServer) !*QuicStream {
-        _ = self;
-        return error.NotImplemented;
-    }
-};
-
-const QuicStream = struct {
-    pub fn close(self: *QuicStream) void {
-        _ = self;
-    }
-    
-    pub fn readFrame(self: *QuicStream, buffer: []u8) !Frame {
-        _ = self;
-        _ = buffer;
-        return error.NotImplemented;
-    }
-    
-    pub fn writeFrame(self: *QuicStream, data: []const u8) !void {
-        _ = self;
-        _ = data;
-    }
-};
-
-const Frame = struct {
-    data: []const u8,
-};

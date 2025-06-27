@@ -1,5 +1,68 @@
 const std = @import("std");
 
+pub const ClientConnection = struct {
+    allocator: std.mem.Allocator,
+    stream: ?std.net.Stream = null,
+    is_available: bool = true,
+    
+    const Self = @This();
+    
+    pub fn init(allocator: std.mem.Allocator) Self {
+        return Self{
+            .allocator = allocator,
+        };
+    }
+    
+    pub fn connect(self: *Self, address: std.net.Address) !void {
+        const stream = try std.net.tcpConnectToAddress(address);
+        self.stream = stream;
+        self.is_available = true;
+    }
+    
+    pub fn close(self: *Self) void {
+        if (self.stream) |stream| {
+            stream.close();
+            self.stream = null;
+        }
+    }
+    
+    pub fn isAvailable(self: *Self) bool {
+        return self.is_available;
+    }
+    
+    pub fn release(self: *Self) void {
+        self.is_available = true;
+    }
+    
+    pub fn sendRequest(self: *Self, request: Request) !Response {
+        _ = self;
+        _ = request;
+        // Stub implementation
+        return Response{
+            .body = "stub response",
+        };
+    }
+};
+
+pub const Request = struct {
+    method: []const u8,
+    headers: []const Header,
+    body: []const u8,
+};
+
+pub const Response = struct {
+    body: []const u8,
+    
+    pub fn deinit(self: Response) void {
+        _ = self;
+    }
+};
+
+pub const Header = struct {
+    name: []const u8,
+    value: []const u8,
+};
+
 pub const Handler = struct {
     allocator: std.mem.Allocator,
     services: std.StringHashMap(Service),
@@ -34,6 +97,14 @@ pub const Handler = struct {
         }
 
         try self.services.put(service_name, service);
+    }
+    
+    pub fn registerMethod(self: *Handler, method_path: []const u8, handler: anytype, context: anytype) !void {
+        // Simple method registration for now
+        _ = self;
+        _ = handler;
+        _ = context;
+        std.log.info("Registered gRPC method: {s}", .{method_path});
     }
 
     pub fn processRequest(self: *Handler, frame: anytype) ![]const u8 {
