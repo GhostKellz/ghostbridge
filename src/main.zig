@@ -1,10 +1,16 @@
 const std = @import("std");
-const ghostbridge = @import("ghostbridge");
+const quic_multiplexer = @import("quic_multiplexer.zig");
 
 pub fn main() !void {
-    // Prints to stderr, ignoring potential errors.
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-    try ghostbridge.advancedPrint();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    
+    std.debug.print("🌟 GhostBridge: Advanced QUIC Multiplexer with ZNS Integration\n", .{});
+    std.debug.print("═══════════════════════════════════════════════════════════════\n", .{});
+    
+    // Run the demo
+    try quic_multiplexer.run_demo(allocator);
 }
 
 test "simple test" {
