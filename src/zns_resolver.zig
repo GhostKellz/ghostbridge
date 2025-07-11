@@ -370,7 +370,7 @@ pub const ZNSResolver = struct {
                 .code = .DOMAIN_NOT_FOUND,
                 .message = "Domain not found in any resolver",
                 .details = domain,
-                .resolution_chain = &[_][]const u8{"all_resolvers"},
+                .resolution_chain = @as([][]const u8, @constCast(&[_][]const u8{"all_resolvers"})),
             },
         };
     }

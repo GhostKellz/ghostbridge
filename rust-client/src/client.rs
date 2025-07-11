@@ -34,16 +34,16 @@ pub enum GhostBridgeError {
     InvalidUri(#[from] http::uri::InvalidUri),
     
     #[error("QUIC connection error: {0}")]
-    QuicConnection(#[from] quinn::ConnectionError),
+    QuicConnection(String),
     
     #[error("QUIC write error: {0}")]
-    QuicWrite(#[from] quinn::WriteError),
+    QuicWrite(String),
     
     #[error("QUIC read error: {0}")]
-    QuicRead(#[from] quinn::ReadToEndError),
+    QuicRead(String),
     
     #[error("QUIC stream closed: {0}")]
-    QuicClosed(#[from] quinn::ClosedStream),
+    QuicClosed(String),
 }
 
 pub type Result<T> = std::result::Result<T, GhostBridgeError>;

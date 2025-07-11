@@ -3,9 +3,9 @@ const net = std.net;
 const Allocator = std.mem.Allocator;
 const Thread = std.Thread;
 const Atomic = std.atomic.Value;
-const zquic = @import("zquic");
+const shroud = @import("shroud");
 const http2 = @import("http2.zig");
-const tokioz = @import("tokioz_stub.zig");
+const tokioz = @import("tokioz");
 const IdentityService = @import("identity_service.zig").IdentityService;
 const WalletService = @import("wallet_service.zig").WalletService;
 

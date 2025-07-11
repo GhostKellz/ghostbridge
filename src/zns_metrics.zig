@@ -421,7 +421,7 @@ const HealthStatus = enum(u8) {
     healthy = 2,
 };
 
-const MetricsSummary = struct {
+pub const MetricsSummary = struct {
     uptime_seconds: u64,
     total_queries: u64,
     successful_queries: u64,

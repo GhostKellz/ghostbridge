@@ -4,11 +4,9 @@
 **Author**: ghostkellz  
 **Target Version**: `zcrypto v0.5.0`, `zquic v0.3.0`, `ghost-wasm v0.1.0`
 ----
-REPOS
-ghostd - https://github.com/ghostkellz/ghostd  - Rust based 
-walletd - https://github.com/ghostkellz/walletd  - Rust based
-zcrypto - https://github.com/ghostkellz/zcrypto  - zig based v0.5.0 
-zquic - https://github.com/ghostkellz/zquic  - zig based v0.3.0 
+REPOS 
+Ghostchain - https://github.com/ghostkellz/ghostchain  - Rust based 
+Shroud - https://github.com/ghostkellz/shroud   
 zvm  - https://github.com/ghostkellz/zvm  - zig based 
 ---
 

@@ -100,7 +100,7 @@ pub const RecordValidator = struct {
     
     fn validate_ipv4(address: []const u8) ValidationResult {
         // IPv4 format: xxx.xxx.xxx.xxx
-        var parts = std.mem.split(u8, address, ".");
+        var parts = std.mem.splitScalar(u8, address, '.');
         var count: u8 = 0;
         
         while (parts.next()) |part| {

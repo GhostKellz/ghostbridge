@@ -4,21 +4,16 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const zquic = b.dependency("zquic", .{
+    const shroud = b.dependency("shroud", .{
         .target = target,
         .optimize = optimize,
     });
 
-    // TODO: Re-enable when dependencies are properly configured
-    // const tokioz = b.dependency("tokioz", .{
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
+    const tokioz = b.dependency("tokioz", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
-    // const realid = b.dependency("realid", .{
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
 
     const exe = b.addExecutable(.{
         .name = "ghostbridge",
@@ -28,10 +23,8 @@ pub fn build(b: *std.Build) void {
     });
 
     // Add working dependencies
-    exe.root_module.addImport("zquic", zquic.module("zquic"));
-    
-    // TODO: Add proper TokioZ and realID modules when dependencies are fixed
-    // For now, we'll use local stubs to maintain compilation
+    exe.root_module.addImport("shroud", shroud.module("shroud"));
+    exe.root_module.addImport("tokioz", tokioz.module("TokioZ"));
 
     b.installArtifact(exe);
 

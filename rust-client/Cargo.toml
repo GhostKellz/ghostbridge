@@ -1,7 +1,7 @@
 [package]
 name = "ghostbridge-client"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 tokio = { version = "1.40", features = ["full"] }
@@ -14,23 +14,21 @@ bytes = "1.7"
 tower = "0.5"
 hyper = { version = "1.4", features = ["http2", "client"] }
 http = "1.1"
-quinn = "0.11" # For QUIC support
-rustls = "0.23"
-ring = "0.17"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Phase 2: Crypto integration dependencies
-ed25519-dalek = "2.0"      # EdDSA signatures
-x25519-dalek = "2.0"       # X25519 key exchange
-chacha20poly1305 = "0.10"  # ChaCha20-Poly1305 AEAD
-hkdf = "0.12"              # HKDF key derivation
-blake3 = "1.5"             # Fast hashing
+# Pure Rust implementations from ghostkellz - v0.4.0 with full features
+gcrypt = { git = "https://github.com/ghostkellz/gcrypt.git", features = ["std", "rand_core"] }
+# Use quinn instead of gquic for stable QUIC implementation
+quinn = "0.10"
+rustls = "0.21"
+tokio-rustls = "0.24"
+
+# Keep minimal dependencies needed for compatibility
 hex = "0.4"                # Hex encoding/decoding
 zeroize = "1.8"            # Secure memory clearing
 rand = "0.8"               # Random number generation
-sha2 = "0.10"              # SHA-256 for HKDF
 
 # Optional WASM support
 [target.'cfg(target_arch = "wasm32")'.dependencies]

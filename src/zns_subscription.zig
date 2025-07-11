@@ -63,7 +63,7 @@ pub const ZNSSubscriptionManager = struct {
         if (request.domains.len == 0) {
             // Watch all domains - add to special wildcard list
             const wildcard_key = try self.allocator.dupe(u8, "*");
-            var watchers = self.domain_watchers.get(wildcard_key) orelse blk: {
+            var watchers = self.domain_watchers.getPtr(wildcard_key) orelse blk: {
                 const new_list = std.ArrayList(*Subscription).init(self.allocator);
                 try self.domain_watchers.put(wildcard_key, new_list);
                 break :blk self.domain_watchers.getPtr(wildcard_key).?;
@@ -73,7 +73,7 @@ pub const ZNSSubscriptionManager = struct {
             // Watch specific domains
             for (request.domains) |domain| {
                 const domain_key = try self.allocator.dupe(u8, domain);
-                var watchers = self.domain_watchers.get(domain_key) orelse blk: {
+                var watchers = self.domain_watchers.getPtr(domain_key) orelse blk: {
                     const new_list = std.ArrayList(*Subscription).init(self.allocator);
                     try self.domain_watchers.put(domain_key, new_list);
                     break :blk self.domain_watchers.getPtr(domain_key).?;
@@ -348,7 +348,7 @@ pub const EventProcessor = struct {
         
         for (events.items) |event| {
             const log_line = try std.fmt.allocPrint(self.allocator, 
-                "[{}] Domain: {} Event: {} Transaction: {s}\n",
+                "[{}] Domain: {s} Event: {s} Transaction: {s}\n",
                 .{ event.timestamp, event.domain, @tagName(event.event_type), event.transaction_hash }
             );
             defer self.allocator.free(log_line);
