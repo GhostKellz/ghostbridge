@@ -1,8 +1,9 @@
 // Core modules
 pub mod client;
 pub mod connection_pool;
-pub mod quic_transport;
-pub mod quic_client_wrapper;
+// Legacy QUIC transport disabled - using GhostLink's unified transport
+// pub mod quic_transport;
+// pub mod quic_client_wrapper;
 
 // Phase 2: Crypto integration
 pub mod crypto;
@@ -30,8 +31,9 @@ pub mod ghost {
 
 pub use client::{GhostBridgeClient, GhostBridgeError};
 pub use connection_pool::ConnectionPool;
-pub use quic_transport::QuicTransport;
-pub use quic_client_wrapper::{QuicClient, EnhancedQuicTransport};
+// Legacy QUIC transport disabled - using GhostLink's unified transport
+// pub use quic_transport::QuicTransport;
+// pub use quic_client_wrapper::{QuicClient, EnhancedQuicTransport};
 
 // Re-export commonly used types
 pub use ghost::chain::v1::{

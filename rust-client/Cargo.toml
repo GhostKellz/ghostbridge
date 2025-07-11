@@ -18,12 +18,11 @@ thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Pure Rust implementations from ghostkellz - v0.4.0 with full features
+# GhostLink v0.3.0 with unified crypto stack (includes gcrypt + quic)
+ghostlink = { git = "https://github.com/ghostkellz/ghostlink", version = "0.3.0", features = ["quic"] }
+# Keep existing crypto and QUIC for compatibility
 gcrypt = { git = "https://github.com/ghostkellz/gcrypt.git", features = ["std", "rand_core"] }
-# Use quinn instead of gquic for stable QUIC implementation
-quinn = "0.10"
-rustls = "0.21"
-tokio-rustls = "0.24"
+quinn = "0.11"
 
 # Keep minimal dependencies needed for compatibility
 hex = "0.4"                # Hex encoding/decoding

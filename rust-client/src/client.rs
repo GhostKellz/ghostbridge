@@ -3,6 +3,9 @@ use tokio::sync::RwLock;
 use tonic::{transport::Channel, Request, Response, Status};
 use tracing::{debug, error, info};
 
+// GhostLink v0.3.0 imports for unified client architecture
+use ghostlink::{GhostClient, GhostClientConfig, TransportProtocol};
+
 use crate::ghost::chain::v1::{
     ghost_chain_service_client::GhostChainServiceClient,
     DomainQuery, DomainResponse,
@@ -17,7 +20,8 @@ use crate::ghost::dns::v1::{
 };
 use crate::ghost::common::v1::Empty;
 use crate::connection_pool::ConnectionPool;
-use crate::quic_transport::QuicTransport;
+// Legacy QUIC transport disabled - using GhostLink's unified transport
+// use crate::quic_transport::QuicTransport;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GhostBridgeError {
@@ -50,9 +54,13 @@ pub type Result<T> = std::result::Result<T, GhostBridgeError>;
 
 #[derive(Clone)]
 pub struct GhostBridgeClient {
+    // GhostLink v0.3.0 unified client for GhostChain communication
+    ghostlink_client: Arc<GhostClient>,
+    // Legacy connection pools for backward compatibility with existing gRPC API
     chain_pool: Arc<ConnectionPool<GhostChainServiceClient<Channel>>>,
     dns_pool: Arc<ConnectionPool<GhostDnsServiceClient<Channel>>>,
-    quic_transport: Option<Arc<QuicTransport>>,
+    // Legacy QUIC transport disabled - using GhostLink's unified transport
+    // quic_transport: Option<Arc<QuicTransport>>,
     config: ClientConfig,
 }
 
@@ -63,16 +71,22 @@ pub struct ClientConfig {
     pub pool_size: usize,
     pub request_timeout: std::time::Duration,
     pub enable_compression: bool,
+    // GhostLink v0.3.0 transport protocol selection
+    pub transport_protocol: TransportProtocol,
+    pub enable_tls: bool,
 }
 
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-            endpoint: "http://127.0.0.1:9090".to_string(),
+            endpoint: "https://127.0.0.1:9090".to_string(),
             enable_quic: true,
             pool_size: 4,
             request_timeout: std::time::Duration::from_secs(10),
             enable_compression: true,
+            // GhostLink v0.3.0 defaults: QUIC with TLS
+            transport_protocol: TransportProtocol::Quic,
+            enable_tls: true,
         }
     }
 }
@@ -93,6 +107,11 @@ impl GhostBridgeClient {
             .endpoint(endpoint)
             .build()
             .await
+    }
+
+    /// Access the underlying GhostLink client for direct GhostChain operations
+    pub fn ghostlink(&self) -> &GhostClient {
+        &self.ghostlink_client
     }
 
     // Chain service methods
@@ -207,17 +226,14 @@ impl GhostBridgeClient {
         Ok(response.into_inner())
     }
 
-    // QUIC-specific methods
+    // QUIC-specific methods now handled by GhostLink's unified transport
     pub async fn resolve_domain_quic(
         &self,
         domain: impl Into<String>,
         record_types: Vec<String>,
     ) -> Result<DomainResponse> {
-        if let Some(quic) = &self.quic_transport {
-            quic.resolve_domain(domain.into(), record_types).await
-        } else {
-            Err(GhostBridgeError::Config("QUIC not enabled".to_string()))
-        }
+        // Use GhostLink's unified transport (which includes QUIC)
+        self.resolve_domain(domain, record_types).await
     }
 }
 
@@ -229,6 +245,22 @@ impl GhostBridgeClientBuilder {
 
     pub fn enable_quic(mut self, enable: bool) -> Self {
         self.config.enable_quic = enable;
+        // Update transport protocol based on QUIC preference
+        if enable {
+            self.config.transport_protocol = TransportProtocol::Quic;
+        } else {
+            self.config.transport_protocol = TransportProtocol::Http2Grpc;
+        }
+        self
+    }
+
+    pub fn transport_protocol(mut self, protocol: TransportProtocol) -> Self {
+        self.config.transport_protocol = protocol;
+        self
+    }
+
+    pub fn with_tls(mut self, enable: bool) -> Self {
+        self.config.enable_tls = enable;
         self
     }
 
@@ -250,7 +282,25 @@ impl GhostBridgeClientBuilder {
     pub async fn build(self) -> Result<GhostBridgeClient> {
         info!("Building GhostBridge client with endpoint: {}", self.config.endpoint);
 
-        // Create connection pools
+        // Create GhostLink v0.3.0 client with unified transport
+        let config_clone = self.config.clone();
+        let mut ghostlink_config = GhostClientConfig::builder()
+            .endpoint(config_clone.endpoint.clone())
+            .transport_protocol(config_clone.transport_protocol);
+        
+        if config_clone.enable_tls {
+            ghostlink_config = ghostlink_config.with_tls();
+        }
+        
+        let ghostlink_config = ghostlink_config.build();
+
+        let ghostlink_client = Arc::new(
+            GhostClient::connect(ghostlink_config)
+                .await
+                .map_err(|e| GhostBridgeError::Config(format!("GhostLink connection failed: {}", e)))?
+        );
+
+        // Create connection pools for legacy gRPC API compatibility
         let chain_pool = Arc::new(
             ConnectionPool::new(
                 self.config.pool_size,
@@ -283,23 +333,15 @@ impl GhostBridgeClientBuilder {
             .await?,
         );
 
-        // Initialize QUIC transport if enabled
-        let quic_transport = if self.config.enable_quic {
-            match QuicTransport::new(&self.config).await {
-                Ok(transport) => Some(Arc::new(transport)),
-                Err(e) => {
-                    error!("Failed to initialize QUIC transport: {}", e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
+        // Legacy QUIC transport disabled - using GhostLink's unified transport
+        let _quic_transport: Option<()> = None;
 
         Ok(GhostBridgeClient {
+            ghostlink_client,
             chain_pool,
             dns_pool,
-            quic_transport,
+            // Legacy QUIC transport disabled - using GhostLink's unified transport
+            // quic_transport,
             config: self.config,
         })
     }

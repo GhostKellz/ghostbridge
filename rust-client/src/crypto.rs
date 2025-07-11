@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+// Temporarily use gcrypt directly until GhostLink crypto module is available
 use gcrypt::{
     Scalar,
     EdwardsPoint,
@@ -8,13 +8,14 @@ use gcrypt::{
 use zeroize::Zeroize;
 use rand::RngCore;
 
-/// Cryptographic operations for GhostBridge
+/// Cryptographic operations for GhostBridge using GhostLink v0.3.0
 /// Implements the recommendations for secure communication:
 /// - X25519 key exchange for secure channels
 /// - ChaCha20-Poly1305 for high-performance encryption  
 /// - HKDF for proper key derivation
 /// - Ed25519 for signatures
 pub struct GhostCrypto {
+    // Back to gcrypt until GhostLink crypto module is ready
     signing_key: Scalar,
     public_key: EdwardsPoint,
 }
@@ -215,10 +216,6 @@ mod tests {
     
     #[test]
     fn test_key_generation() {
-        // Test with fixed scalar first
-        let secret = Scalar::from_bytes_mod_order([1u8; 32]);
-        let _public = EdwardsPoint::mul_base(&secret);
-        
         let crypto = GhostCrypto::new().unwrap();
         assert_eq!(crypto.public_key().len(), 32);
     }
