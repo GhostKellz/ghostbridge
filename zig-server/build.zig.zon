@@ -5,8 +5,8 @@
     .minimum_zig_version = "0.13.0",
     .dependencies = .{
         .shroud = .{
-            .url = "https://github.com/ghostkellz/shroud/archive/refs/heads/main.tar.gz",
-            .hash = "shroud-0.4.0-z7C8mQqQHABws8EKK9gkBc8b73eXiWhbziy3Hdlb-8VA",
+            .url = "https://github.com/ghostkellz/shroud/archive/main.tar.gz",
+            .hash = "shroud-0.4.0-z7C8meSFOAVHhmfnRjKbbavwmd55NEfaOisYuoMKeYWL",
         },
         .tokioz = .{
             .url = "https://github.com/ghostkellz/tokioZ/archive/refs/heads/main.tar.gz",
