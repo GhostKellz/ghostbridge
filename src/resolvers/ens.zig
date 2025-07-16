@@ -283,7 +283,7 @@ pub const ENSResolver = struct {
         // Namehash parameter
         @memcpy(call_data[4..36], &namehash);
         
-        return try std.fmt.allocPrint(self.allocator, "{x}", .{std.fmt.fmtSliceHexLower(&call_data)});
+        return try std.fmt.allocPrint(self.allocator, "{x}", .{call_data});
     }
     
     fn encode_addr_call(self: *@This(), namehash: [32]u8) ![]const u8 {
@@ -297,7 +297,7 @@ pub const ENSResolver = struct {
         
         @memcpy(call_data[4..36], &namehash);
         
-        return try std.fmt.allocPrint(self.allocator, "{x}", .{std.fmt.fmtSliceHexLower(&call_data)});
+        return try std.fmt.allocPrint(self.allocator, "{x}", .{call_data});
     }
     
     fn encode_text_call(self: *@This(), namehash: [32]u8, key: []const u8) ![]const u8 {

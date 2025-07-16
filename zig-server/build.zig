@@ -4,12 +4,17 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const shroud = b.dependency("shroud", .{
+    const zsync = b.dependency("zsync", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const tokioz = b.dependency("tokioz", .{
+    const zcrypto = b.dependency("zcrypto", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const zquic = b.dependency("zquic", .{
         .target = target,
         .optimize = optimize,
     });
@@ -23,8 +28,9 @@ pub fn build(b: *std.Build) void {
     });
 
     // Add working dependencies
-    exe.root_module.addImport("shroud", shroud.module("shroud"));
-    exe.root_module.addImport("tokioz", tokioz.module("TokioZ"));
+    exe.root_module.addImport("zsync", zsync.module("zsync"));
+    exe.root_module.addImport("zcrypto", zcrypto.module("zcrypto"));
+    exe.root_module.addImport("zquic", zquic.module("zquic"));
 
     b.installArtifact(exe);
 

@@ -1,5 +1,5 @@
 const std = @import("std");
-const shroud = @import("shroud");
+const zcrypto = @import("zcrypto");
 const grpc = @import("zig-server/src/grpc.zig");
 
 // Global allocator for FFI

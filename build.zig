@@ -18,13 +18,18 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    // Add shroud dependencies
-    const shroud = b.dependency("shroud", .{
+    // Add new dependencies
+    const zsync = b.dependency("zsync", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const tokioz = b.dependency("tokioz", .{
+    const zcrypto = b.dependency("zcrypto", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const zquic = b.dependency("zquic", .{
         .target = target,
         .optimize = optimize,
     });
@@ -91,8 +96,9 @@ pub fn build(b: *std.Build) void {
                 // can be extremely useful in case of collisions (which can happen
                 // importing modules from different packages).
                 .{ .name = "ghostbridge", .module = mod },
-                .{ .name = "shroud", .module = shroud.module("shroud") },
-                .{ .name = "tokioz", .module = tokioz.module("TokioZ") },
+                .{ .name = "zsync", .module = zsync.module("zsync") },
+                .{ .name = "zcrypto", .module = zcrypto.module("zcrypto") },
+                .{ .name = "zquic", .module = zquic.module("zquic") },
             },
         }),
     });
