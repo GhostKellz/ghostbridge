@@ -1,0 +1,239 @@
+syntax = "proto3";
+package ghost.stellar.v1;
+
+import "common.proto";
+
+service StellarBridgeService {
+  rpc GetAccount(StellarAccountQuery) returns (StellarAccountResponse);
+  rpc GetBalance(StellarBalanceQuery) returns (StellarBalanceResponse);
+  rpc GetTransaction(StellarTransactionQuery) returns (StellarTransactionResponse);
+  rpc GetLedger(StellarLedgerQuery) returns (StellarLedgerResponse);
+  rpc GetLatestLedger(ghost.common.v1.Empty) returns (StellarLedgerResponse);
+  rpc SubmitTransaction(StellarTransactionRequest) returns (StellarTransactionResponse);
+  rpc GetPaymentPaths(StellarPathRequest) returns (StellarPathResponse);
+  rpc GetOrderbook(StellarOrderbookQuery) returns (StellarOrderbookResponse);
+  rpc SubscribeLedgers(ghost.common.v1.Empty) returns (stream StellarLedgerResponse);
+  rpc SubscribeTransactions(StellarTransactionFilter) returns (stream StellarTransactionResponse);
+  rpc SubscribePayments(StellarPaymentFilter) returns (stream StellarPaymentEvent);
+  rpc ResolveDomain(StellarDomainQuery) returns (StellarDomainResponse);
+}
+
+message StellarAccountQuery {
+  string account_id = 1;
+  string network = 2; // "mainnet", "testnet", "futurenet"
+}
+
+message StellarAccountResponse {
+  string account_id = 1;
+  string sequence = 2;
+  repeated StellarBalance balances = 3;
+  repeated StellarSigner signers = 4;
+  uint32 num_subentries = 5;
+  string inflation_destination = 6;
+  repeated StellarAccountFlag flags = 7;
+  string home_domain = 8;
+  repeated StellarAccountData data = 9;
+  ghost.common.v1.Error error = 10;
+}
+
+message StellarBalanceQuery {
+  string account_id = 1;
+  string asset_code = 2;
+  string asset_issuer = 3;
+  string network = 4;
+}
+
+message StellarBalanceResponse {
+  string balance = 1;
+  string buying_liabilities = 2;
+  string selling_liabilities = 3;
+  ghost.common.v1.Error error = 4;
+}
+
+message StellarBalance {
+  string asset_type = 1;
+  string asset_code = 2;
+  string asset_issuer = 3;
+  string balance = 4;
+  string limit = 5;
+  string buying_liabilities = 6;
+  string selling_liabilities = 7;
+  bool is_authorized = 8;
+  bool is_authorized_to_maintain_liabilities = 9;
+}
+
+message StellarSigner {
+  string key = 1;
+  uint32 weight = 2;
+  string type = 3;
+}
+
+message StellarAccountFlag {
+  string name = 1;
+  bool enabled = 2;
+}
+
+message StellarAccountData {
+  string key = 1;
+  string value = 2;
+}
+
+message StellarTransactionQuery {
+  string transaction_hash = 1;
+  string network = 2;
+}
+
+message StellarTransactionRequest {
+  string source_account = 1;
+  string fee = 2;
+  string sequence_number = 3;
+  repeated StellarOperation operations = 4;
+  string memo_type = 5;
+  string memo_value = 6;
+  repeated string signatures = 7;
+  string network = 8;
+}
+
+message StellarTransactionResponse {
+  string transaction_hash = 1;
+  string ledger = 2;
+  string created_at = 3;
+  string source_account = 4;
+  string fee_paid = 5;
+  bool successful = 6;
+  repeated StellarOperation operations = 7;
+  string memo_type = 8;
+  string memo_value = 9;
+  repeated string signatures = 10;
+  ghost.common.v1.Error error = 11;
+}
+
+message StellarOperation {
+  string type = 1;
+  string source_account = 2;
+  map<string, string> details = 3;
+}
+
+message StellarLedgerQuery {
+  oneof identifier {
+    string ledger_sequence = 1;
+    string ledger_hash = 2;
+  }
+  string network = 3;
+}
+
+message StellarLedgerResponse {
+  string sequence = 1;
+  string hash = 2;
+  string prev_hash = 3;
+  string closed_at = 4;
+  string total_coins = 5;
+  string fee_pool = 6;
+  string base_fee = 7;
+  string base_reserve = 8;
+  uint32 max_tx_set_size = 9;
+  uint32 transaction_count = 10;
+  uint32 operation_count = 11;
+  ghost.common.v1.Error error = 12;
+}
+
+message StellarPathRequest {
+  string source_account = 1;
+  string destination_account = 2;
+  string source_asset_type = 3;
+  string source_asset_code = 4;
+  string source_asset_issuer = 5;
+  string destination_asset_type = 6;
+  string destination_asset_code = 7;
+  string destination_asset_issuer = 8;
+  string destination_amount = 9;
+  string network = 10;
+}
+
+message StellarPathResponse {
+  repeated StellarPath paths = 1;
+  ghost.common.v1.Error error = 2;
+}
+
+message StellarPath {
+  string source_asset_type = 1;
+  string source_asset_code = 2;
+  string source_asset_issuer = 3;
+  string source_amount = 4;
+  string destination_asset_type = 5;
+  string destination_asset_code = 6;
+  string destination_asset_issuer = 7;
+  string destination_amount = 8;
+  repeated StellarAsset path = 9;
+}
+
+message StellarAsset {
+  string asset_type = 1;
+  string asset_code = 2;
+  string asset_issuer = 3;
+}
+
+message StellarOrderbookQuery {
+  string selling_asset_type = 1;
+  string selling_asset_code = 2;
+  string selling_asset_issuer = 3;
+  string buying_asset_type = 4;
+  string buying_asset_code = 5;
+  string buying_asset_issuer = 6;
+  uint32 limit = 7;
+  string network = 8;
+}
+
+message StellarOrderbookResponse {
+  repeated StellarOffer bids = 1;
+  repeated StellarOffer asks = 2;
+  ghost.common.v1.Error error = 3;
+}
+
+message StellarOffer {
+  string amount = 1;
+  string price = 2;
+  string price_r_n = 3;
+  string price_r_d = 4;
+}
+
+message StellarTransactionFilter {
+  repeated string accounts = 1;
+  string from_ledger = 2;
+  string to_ledger = 3;
+  string network = 4;
+}
+
+message StellarPaymentFilter {
+  repeated string accounts = 1;
+  string asset_type = 2;
+  string asset_code = 3;
+  string asset_issuer = 4;
+  string from_ledger = 5;
+  string to_ledger = 6;
+  string network = 7;
+}
+
+message StellarPaymentEvent {
+  string transaction_hash = 1;
+  string from = 2;
+  string to = 3;
+  string asset_type = 4;
+  string asset_code = 5;
+  string asset_issuer = 6;
+  string amount = 7;
+  string created_at = 8;
+  ghost.common.v1.Error error = 9;
+}
+
+message StellarDomainQuery {
+  string domain = 1; // e.g., "example.stellar"
+  string network = 2;
+}
+
+message StellarDomainResponse {
+  string domain = 1;
+  string resolved_account = 2;
+  map<string, string> stellar_toml = 3;
+  ghost.common.v1.Error error = 4;
+}

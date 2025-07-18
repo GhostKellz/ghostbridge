@@ -1,0 +1,190 @@
+syntax = "proto3";
+package ghost.crosschain.v1;
+
+import "common.proto";
+
+service CrossChainService {
+  rpc CrossChainTransfer(CrossChainTransferRequest) returns (CrossChainTransferResponse);
+  rpc CrossChainIdentity(CrossChainIdentityRequest) returns (CrossChainIdentityResponse);
+  rpc CrossChainDomainLookup(CrossChainDomainRequest) returns (CrossChainDomainResponse);
+  rpc GetTransferStatus(TransferStatusRequest) returns (TransferStatusResponse);
+  rpc GetSupportedChains(ghost.common.v1.Empty) returns (SupportedChainsResponse);
+  rpc EstimateTransferFee(TransferFeeRequest) returns (TransferFeeResponse);
+  rpc SubscribeTransferEvents(TransferEventFilter) returns (stream CrossChainTransferEvent);
+}
+
+enum ChainType {
+  CHAIN_TYPE_UNSPECIFIED = 0;
+  CHAIN_TYPE_GHOSTCHAIN = 1;
+  CHAIN_TYPE_ETHEREUM = 2;
+  CHAIN_TYPE_STELLAR = 3;
+}
+
+message CrossChainTransferRequest {
+  ChainType source_chain = 1;
+  ChainType destination_chain = 2;
+  string source_address = 3;
+  string destination_address = 4;
+  string amount = 5;
+  string asset_code = 6;
+  string asset_issuer = 7; // for stellar assets
+  string memo = 8;
+  string gas_limit = 9; // for ethereum
+  string gas_price = 10; // for ethereum
+  string network = 11; // mainnet, testnet, etc.
+}
+
+message CrossChainTransferResponse {
+  string transfer_id = 1;
+  string source_transaction_hash = 2;
+  string destination_transaction_hash = 3;
+  TransferStatus status = 4;
+  string estimated_completion_time = 5;
+  string bridge_fee = 6;
+  string network_fee = 7;
+  ghost.common.v1.Error error = 8;
+}
+
+enum TransferStatus {
+  TRANSFER_STATUS_UNSPECIFIED = 0;
+  TRANSFER_STATUS_PENDING = 1;
+  TRANSFER_STATUS_SOURCE_CONFIRMED = 2;
+  TRANSFER_STATUS_BRIDGING = 3;
+  TRANSFER_STATUS_DESTINATION_PENDING = 4;
+  TRANSFER_STATUS_COMPLETED = 5;
+  TRANSFER_STATUS_FAILED = 6;
+  TRANSFER_STATUS_REFUNDED = 7;
+}
+
+message CrossChainIdentityRequest {
+  string identifier = 1; // address, domain, or DID
+  repeated ChainType chains = 2; // chains to lookup identity on
+  string network = 3;
+}
+
+message CrossChainIdentityResponse {
+  string primary_identifier = 1;
+  repeated ChainIdentity identities = 2;
+  repeated string linked_domains = 3;
+  repeated IdentityProof proofs = 4;
+  ghost.common.v1.Error error = 5;
+}
+
+message ChainIdentity {
+  ChainType chain = 1;
+  string address = 2;
+  string did = 3; // decentralized identifier
+  string ghost_id = 4; // ghostchain specific
+  map<string, string> metadata = 5;
+  string verification_method = 6;
+  uint64 last_updated = 7;
+}
+
+message IdentityProof {
+  ChainType chain = 1;
+  string signature = 2;
+  string public_key = 3;
+  string proof_type = 4; // "signature", "zk-proof", etc.
+  string proof_data = 5;
+  uint64 timestamp = 6;
+}
+
+message CrossChainDomainRequest {
+  string domain = 1; // e.g., "example.ghost", "example.eth"
+  repeated ChainType chains = 2; // chains to lookup domain on
+  string network = 3;
+}
+
+message CrossChainDomainResponse {
+  string domain = 1;
+  repeated ChainDomainRecord records = 2;
+  string primary_owner = 3;
+  repeated string linked_addresses = 4;
+  ghost.common.v1.Error error = 5;
+}
+
+message ChainDomainRecord {
+  ChainType chain = 1;
+  string resolved_address = 2;
+  string owner = 3;
+  map<string, string> records = 4; // DNS records, metadata, etc.
+  uint64 expiry = 5;
+  string registry_contract = 6;
+}
+
+message TransferStatusRequest {
+  string transfer_id = 1;
+}
+
+message TransferStatusResponse {
+  string transfer_id = 1;
+  CrossChainTransferRequest original_request = 2;
+  TransferStatus status = 3;
+  string source_transaction_hash = 4;
+  string destination_transaction_hash = 5;
+  uint32 source_confirmations = 6;
+  uint32 destination_confirmations = 7;
+  string estimated_completion_time = 8;
+  repeated TransferStep steps = 9;
+  ghost.common.v1.Error error = 10;
+}
+
+message TransferStep {
+  string step_name = 1;
+  TransferStatus status = 2;
+  string transaction_hash = 3;
+  uint64 timestamp = 4;
+  string details = 5;
+}
+
+message SupportedChainsResponse {
+  repeated ChainInfo chains = 1;
+}
+
+message ChainInfo {
+  ChainType chain = 1;
+  string name = 2;
+  string network = 3;
+  repeated string supported_assets = 4;
+  string native_currency = 5;
+  uint32 block_time = 6;
+  uint32 confirmations_required = 7;
+  bool is_active = 8;
+}
+
+message TransferFeeRequest {
+  ChainType source_chain = 1;
+  ChainType destination_chain = 2;
+  string amount = 3;
+  string asset_code = 4;
+  string network = 5;
+}
+
+message TransferFeeResponse {
+  string bridge_fee = 1;
+  string source_network_fee = 2;
+  string destination_network_fee = 3;
+  string total_fee = 4;
+  string fee_currency = 5;
+  ghost.common.v1.Error error = 6;
+}
+
+message TransferEventFilter {
+  repeated string transfer_ids = 1;
+  repeated string addresses = 2;
+  repeated ChainType chains = 3;
+  string from_timestamp = 4;
+  string to_timestamp = 5;
+  string network = 6;
+}
+
+message CrossChainTransferEvent {
+  string transfer_id = 1;
+  string event_type = 2; // "initiated", "confirmed", "bridged", "completed", "failed"
+  ChainType chain = 3;
+  string transaction_hash = 4;
+  string block_number = 5;
+  uint64 timestamp = 6;
+  map<string, string> details = 7;
+  ghost.common.v1.Error error = 8;
+}

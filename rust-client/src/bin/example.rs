@@ -36,14 +36,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         DomainQuery {
             domain: "app1.ghost".to_string(),
             record_types: vec!["A".to_string()],
+            network: "mainnet".to_string(),
         },
         DomainQuery {
             domain: "app2.ghost".to_string(),
             record_types: vec!["A".to_string(), "TXT".to_string()],
+            network: "mainnet".to_string(),
         },
         DomainQuery {
             domain: "app3.ghost".to_string(),
             record_types: vec!["AAAA".to_string()],
+            network: "mainnet".to_string(),
         },
     ];
 

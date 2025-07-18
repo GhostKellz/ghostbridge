@@ -123,6 +123,7 @@ impl GhostBridgeClient {
         let request = Request::new(DomainQuery {
             domain: domain.into(),
             record_types,
+            network: "mainnet".to_string(),
         });
 
         let mut client = self.chain_pool.get().await?;
@@ -152,6 +153,7 @@ impl GhostBridgeClient {
     pub async fn get_account(&self, account_id: impl Into<String>) -> Result<AccountResponse> {
         let request = Request::new(AccountQuery {
             account_id: account_id.into(),
+            network: "mainnet".to_string(),
         });
 
         let mut client = self.chain_pool.get().await?;
@@ -163,6 +165,7 @@ impl GhostBridgeClient {
     pub async fn get_balance(&self, account_id: impl Into<String>) -> Result<BalanceResponse> {
         let request = Request::new(BalanceQuery {
             account_id: account_id.into(),
+            network: "mainnet".to_string(),
         });
 
         let mut client = self.chain_pool.get().await?;

@@ -5,6 +5,9 @@ const http2 = @import("http2.zig");
 const grpc = @import("grpc.zig");
 const protobuf = @import("protobuf.zig");
 const QuicMultiplexer = @import("quic_multiplexer.zig").QuicMultiplexer;
+const eth_bridge = @import("eth_bridge.zig");
+const stellar_bridge = @import("stellar_bridge.zig");
+const cross_chain_service = @import("cross_chain_service.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -56,10 +59,18 @@ pub const GhostBridgeServer = struct {
     grpc_handler: grpc.Handler,
     stats: ServerStats,
     cache: ResponseCache,
+    eth_service: eth_bridge.EthBridgeService,
+    stellar_service: stellar_bridge.StellarBridgeService,
+    cross_chain_service: cross_chain_service.CrossChainService,
 
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator, options: ServerOptions) !Self {
+        // Initialize bridge services
+        var eth_service = eth_bridge.EthBridgeService.init(allocator, "https://mainnet.infura.io/v3/YOUR_PROJECT_ID", 1);
+        var stellar_service = stellar_bridge.StellarBridgeService.init(allocator, "https://horizon.stellar.org", "mainnet");
+        var cross_chain_service = try cross_chain_service.CrossChainService.init(allocator, &eth_service, &stellar_service, null);
+
         var self = Self{
             .allocator = allocator,
             .http2_server = null,
@@ -67,6 +78,9 @@ pub const GhostBridgeServer = struct {
             .grpc_handler = try grpc.Handler.init(allocator),
             .stats = ServerStats{},
             .cache = try ResponseCache.init(allocator, 1024 * 1024 * 100), // 100MB cache
+            .eth_service = eth_service,
+            .stellar_service = stellar_service,
+            .cross_chain_service = cross_chain_service,
         };
 
         // Register gRPC services
@@ -119,6 +133,9 @@ pub const GhostBridgeServer = struct {
         }
         self.grpc_handler.deinit();
         self.cache.deinit();
+        self.eth_service.deinit();
+        self.stellar_service.deinit();
+        self.cross_chain_service.deinit();
     }
 
     fn registerServices(self: *Self) !void {
@@ -134,6 +151,11 @@ pub const GhostBridgeServer = struct {
             .GetStats = getStats,
             .GetCacheStatus = getCacheStatus,
         });
+
+        // Register new cross-chain bridge services
+        try self.eth_service.registerService(&self.grpc_handler);
+        try self.stellar_service.registerService(&self.grpc_handler);
+        try self.cross_chain_service.registerService(&self.grpc_handler);
         
         // Register Identity service (realID integration)
         if (self.quic_multiplexer) |mux| {

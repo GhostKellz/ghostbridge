@@ -17,6 +17,7 @@ service GhostChainService {
 message DomainQuery {
   string domain = 1;
   repeated string record_types = 2;
+  string network = 3; // mainnet, testnet, etc.
 }
 
 message DomainResponse {
@@ -51,6 +52,7 @@ message TransactionResponse {
 
 message AccountQuery {
   string account_id = 1;
+  string network = 2; // mainnet, testnet, etc.
 }
 
 message AccountResponse {
@@ -62,6 +64,7 @@ message AccountResponse {
 
 message BalanceQuery {
   string account_id = 1;
+  string network = 2; // mainnet, testnet, etc.
 }
 
 message BalanceResponse {
@@ -74,6 +77,7 @@ message BlockQuery {
     uint64 height = 1;
     string hash = 2;
   }
+  string network = 3; // mainnet, testnet, etc.
 }
 
 message BlockResponse {
