@@ -1,4 +1,4 @@
-![GhostBridge Logo](assets/ghostbridge_logo.png)
+![GhostBridge Logo](assets/ghostbridge-logo.png)
 
 # 👻️ GhostBridge ⚡ – Cross-Chain Bridge Infrastructure
 
