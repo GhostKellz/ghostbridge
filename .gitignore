@@ -1,21 +1,25 @@
-# Zig build artifacts
+# Rust build artifacts
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# Archive folder
+archive/
+
+# Zig build artifacts (if any remaining)
 /zig-cache/
 /zig-out/
 *.o
 *.exe
 
-# Zig server specific
+# Zig server specific (if any remaining)
 zig-server/.zig-cache/
 zig-server/zig-out/
 
-# Rust build artifacts
+# Old rust-client artifacts
 rust-client/target/
 rust-client/Cargo.lock
-
-# General Rust artifacts
-target/
-Cargo.lock
-**/*.rs.bk
 
 # Generated protobuf files
 bindings/c/*.h
@@ -40,3 +44,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+
+# Added by cargo
+
+/target

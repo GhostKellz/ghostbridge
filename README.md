@@ -1,8 +1,10 @@
-# 👻️ GhostBridge ⚡ – gRPC Interoperability Layer
+![GhostBridge Logo](assets/ghostbridge_logo.png)
 
-## 🌉 High-Performance gRPC Bridge for DNS + Blockchain
+# 👻️ GhostBridge ⚡ – Cross-Chain Bridge Infrastructure
 
-> Ultra-fast, type-safe communication layer bridging **Zig infrastructure** with **Rust-based blockchain nodes**, enabling secure, real-time domain and identity resolution.
+## 🌉 High-Performance Cross-Chain Bridge
+
+> Production-ready **Rust-based bridge** with safe FFI abstraction layer for **GhostPlane (Zig)** integration, enabling seamless cross-chain communication and domain resolution.
 
 ---
 
@@ -16,55 +18,64 @@
 
 ---
 
-## 🔧 Language Choice: **Zig + Rust Hybrid**
+## 🔧 Architecture: **Rust-Based Bridge**
 
-### **Primary Implementation: Zig**
-**Why Zig for the Bridge:**
-- **Zero-Copy Serialization**: Direct memory mapping for protobuf messages
-- **Predictable Performance**: No GC pauses during high-frequency RPC calls
-- **Memory Efficiency**: Critical for high-throughput DNS queries to blockchain
-- **System Integration**: Native integration with GhostDNS/QNGP components
-- **C ABI Compatibility**: Easy FFI with both Rust and C libraries
+### **Benefits of Rust-based GhostBridge:**
 
-### **Rust Components: Client Libraries**
-**Why Rust for Client Side:**
-- **Existing Ecosystem**: Your GhostChain is already in Rust
-- **Type Safety**: Leverage Rust's ownership model for RPC client management
-- **Async/Await**: Perfect match with Tokio runtime in GhostChain
-- **Protobuf Integration**: Excellent prost/tonic ecosystem
+1. **Better integration** - Since your main codebase is Rust, having GhostBridge in Rust means seamless integration with ghostchain-shared types and GCRYPT
+2. **Safer FFI boundary** - Rust has excellent FFI safety features and can better manage the unsafe boundary when calling into Zig
+3. **Single build system** - Cargo can manage the Rust side, and you only need to deal with Zig's build system for GhostPlane
+4. **Type consistency** - Your Rust types can be the source of truth, with Zig bindings generated from them
+
+### **Architecture Pattern:**
+```
+GhostChain (Rust)
+    ↓
+GhostBridge (Rust) - handles FFI safely
+    ↓
+FFI Boundary (C ABI)
+    ↓
+GhostPlane (Zig)
+```
+
+This way GhostBridge becomes your Rust-side abstraction layer that:
+- Exposes safe Rust APIs to the rest of GhostChain
+- Handles all unsafe FFI calls to Zig
+- Manages memory safety across the boundary
+- Provides async wrappers for Zig functions
 
 ---
 
 ## 🏗️ Project Structure
 
+```rust
+// ghostbridge/src/lib.rs
+pub mod ghostplane {
+    // Safe Rust API
+    pub async fn submit_to_l2(tx: Transaction) -> Result<Receipt> {
+        // Handle FFI to Zig internally
+    }
+}
+```
+
 ```
 📁 ghostbridge/
-├── 📁 proto/                    # Shared protocol definitions
-│   ├── ghostchain.proto         # Blockchain RPC definitions
-│   ├── ghostdns.proto          # DNS service definitions
-│   ├── ghostid.proto           # Identity service definitions
-│   └── common.proto             # Shared types
-├── 📁 zig-server/               # Zig gRPC server implementation
-│   ├── src/
-│   │   ├── main.zig
-│   │   ├── grpc_server.zig      # Core gRPC server
-│   │   ├── protobuf.zig         # Protobuf codec
-│   │   ├── blockchain_client.zig # Rust node client
-│   │   └── dns_bridge.zig       # DNS integration
-│   └── build.zig
-├── 📁 rust-client/              # Rust client libraries
-│   ├── src/
-│   │   ├── lib.rs
-│   │   ├── ghostchain_client.rs # Generated client
-│   │   └── bridge_types.rs      # Type definitions
-│   └── Cargo.toml
-├── 📁 bindings/                 # Language bindings
-│   ├── c/                       # C FFI headers
-│   ├── go/                      # Go client (future)
-│   └── python/                  # Python client (future)
-└── 📁 examples/
-    ├── zig_dns_query.zig
-    └── rust_blockchain_call.rs
+├── 📁 src/                      # Rust bridge implementation
+│   ├── lib.rs                   # Main library interface
+│   ├── ghostplane/              # FFI abstraction layer
+│   │   ├── mod.rs               # Safe Rust APIs
+│   │   ├── ffi.rs               # Unsafe FFI bindings
+│   │   └── types.rs             # Shared type definitions
+│   ├── bridge/                  # Core bridge logic
+│   │   ├── mod.rs               # Bridge coordination
+│   │   ├── cross_chain.rs       # Cross-chain communication
+│   │   └── validator.rs         # Transaction validation
+│   └── main.rs                  # Binary entry point
+├── 📁 archive/                  # Legacy Zig implementation (reference)
+├── 📁 assets/                   # Project assets
+│   └── ghostbridge_logo.png    # GhostBridge logo
+├── Cargo.toml                   # Rust dependencies
+└── README.md                    # This file
 ```
 
 ---
@@ -143,184 +154,221 @@ message DNSStats {
 
 ---
 
-## ⚡ Zig Implementation
+## ⚡ Rust Bridge Implementation
 
-### **High-Performance gRPC Server**
+### **Safe FFI Abstraction Layer**
 
-```zig
-// zig-server/src/grpc_server.zig
-const std = @import("std");
-const net = std.net;
-const json = std.json;
+```rust
+// src/ghostplane/mod.rs
+use std::ffi::{c_void, CString};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
-pub const GhostBridgeServer = struct {
-    allocator: std.mem.Allocator,
-    server: net.StreamServer,
-    blockchain_client: BlockchainClient,
-    
-    const Self = @This();
-    
-    pub fn init(allocator: std.mem.Allocator, bind_addr: net.Address) !Self {
-        var server = net.StreamServer.init(.{});
-        try server.listen(bind_addr);
-        
-        return Self{
-            .allocator = allocator,
-            .server = server,
-            .blockchain_client = BlockchainClient.init(allocator),
+// Safe Rust API that other GhostChain components use
+pub struct GhostPlane {
+    handle: Arc<RwLock<*mut c_void>>,
+}
+
+impl GhostPlane {
+    pub async fn new(config: &Config) -> Result<Self> {
+        let handle = unsafe {
+            // Call into Zig via FFI
+            let config_str = CString::new(serde_json::to_string(config)?)?;
+            ghostplane_init(config_str.as_ptr())
         };
+
+        Ok(Self {
+            handle: Arc::new(RwLock::new(handle)),
+        })
     }
-    
-    pub fn run(self: *Self) !void {
-        std.log.info("GhostBridge server listening on {}", .{self.server.listen_address});
-        
-        while (true) {
-            const connection = try self.server.accept();
-            
-            // Spawn async handler for each connection
-            _ = async self.handleConnection(connection);
-        }
+
+    pub async fn submit_transaction(&self, tx: Transaction) -> Result<Receipt> {
+        let handle = self.handle.read().await;
+
+        // Serialize transaction for FFI
+        let tx_bytes = tx.to_bytes()?;
+        let receipt_ptr = unsafe {
+            ghostplane_submit_tx(
+                *handle,
+                tx_bytes.as_ptr(),
+                tx_bytes.len() as u32,
+            )
+        };
+
+        // Safely convert receipt back to Rust type
+        let receipt = unsafe { Receipt::from_ffi(receipt_ptr)? };
+
+        Ok(receipt)
     }
-    
-    fn handleConnection(self: *Self, connection: net.StreamServer.Connection) !void {
-        defer connection.stream.close();
-        
-        var buffer: [8192]u8 = undefined;
-        
-        while (true) {
-            const bytes_read = try connection.stream.read(&buffer);
-            if (bytes_read == 0) break;
-            
-            // Parse gRPC frame and route to appropriate handler
-            const response = try self.routeRequest(buffer[0..bytes_read]);
-            try connection.stream.writeAll(response);
-        }
+
+    pub async fn query_state(&self, key: &[u8]) -> Result<Vec<u8>> {
+        let handle = self.handle.read().await;
+
+        let mut result_len: u32 = 0;
+        let result_ptr = unsafe {
+            ghostplane_query_state(
+                *handle,
+                key.as_ptr(),
+                key.len() as u32,
+                &mut result_len,
+            )
+        };
+
+        // Copy data from FFI and free Zig memory
+        let result = unsafe {
+            let slice = std::slice::from_raw_parts(result_ptr, result_len as usize);
+            let vec = slice.to_vec();
+            ghostplane_free(result_ptr as *mut c_void);
+            vec
+        };
+
+        Ok(result)
     }
-};
+}
+
+// FFI declarations (linked to Zig implementation)
+extern "C" {
+    fn ghostplane_init(config: *const i8) -> *mut c_void;
+    fn ghostplane_submit_tx(handle: *mut c_void, tx: *const u8, len: u32) -> *const u8;
+    fn ghostplane_query_state(handle: *mut c_void, key: *const u8, len: u32, out_len: *mut u32) -> *const u8;
+    fn ghostplane_free(ptr: *mut c_void);
+}
 ```
 
-### **Zero-Copy Protobuf Integration**
+### **Memory-Safe Type Conversion**
 
-```zig
-// zig-server/src/protobuf.zig
-const std = @import("std");
+```rust
+// src/ghostplane/types.rs
+use serde::{Deserialize, Serialize};
+use std::ffi::CStr;
 
-pub const DomainQuery = struct {
-    domain: []const u8,
-    record_types: [][]const u8,
-    
-    // Zero-copy deserialization from protobuf bytes
-    pub fn fromBytes(allocator: std.mem.Allocator, data: []const u8) !DomainQuery {
-        // Direct memory mapping without copying
-        // Implementation uses zig-protobuf library
-        return DomainQuery{
-            .domain = data[4..data.len-2], // Example offset
-            .record_types = &[_][]const u8{"A"}, // Parsed from protobuf
-        };
+// Rust types that match Zig structures
+#[repr(C)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Transaction {
+    pub from: [u8; 32],
+    pub to: [u8; 32],
+    pub value: u64,
+    pub data: Vec<u8>,
+    pub nonce: u64,
+    pub signature: [u8; 64],
+}
+
+impl Transaction {
+    pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        bincode::serialize(self).map_err(Into::into)
     }
-    
-    pub fn toBytes(self: *const DomainQuery, allocator: std.mem.Allocator) ![]u8 {
-        // Serialize directly to bytes without intermediate allocations
-        var buffer = try allocator.alloc(u8, 1024);
-        // Protobuf encoding logic here
-        return buffer;
+
+    pub unsafe fn from_ffi(ptr: *const u8) -> Result<Self> {
+        // Read length prefix
+        let len = *(ptr as *const u32);
+        let data = std::slice::from_raw_parts(ptr.add(4), len as usize);
+
+        bincode::deserialize(data).map_err(Into::into)
     }
-};
+}
+
+#[repr(C)]
+pub struct Receipt {
+    pub tx_hash: [u8; 32],
+    pub block_number: u64,
+    pub success: bool,
+    pub gas_used: u64,
+}
+
+impl Receipt {
+    pub unsafe fn from_ffi(ptr: *const u8) -> Result<Self> {
+        // Safe deserialization with bounds checking
+        let receipt_ptr = ptr as *const Receipt;
+        Ok((*receipt_ptr).clone())
+    }
+}
 ```
 
 ---
 
-## 🦀 Rust Client Implementation
+## 🦀 Integration with GhostChain
 
-### **Async gRPC Client**
+### **Bridge Module Integration**
 
 ```rust
-// rust-client/src/ghostchain_client.rs
-use tonic::{transport::Channel, Request, Response, Status};
-use tokio::sync::RwLock;
+// src/bridge/mod.rs
+use crate::ghostplane::GhostPlane;
+use ghostchain_shared::types::{Transaction, Block};
 use std::sync::Arc;
 
-pub mod ghostchain {
-    tonic::include_proto!("ghostchain.v1");
+pub struct GhostBridge {
+    ghostplane: Arc<GhostPlane>,
+    validator: TransactionValidator,
+    metrics: BridgeMetrics,
 }
 
-use ghostchain::{
-    ghost_chain_service_client::GhostChainServiceClient,
-    DomainQuery, DomainResponse,
-};
+impl GhostBridge {
+    pub async fn new(config: BridgeConfig) -> Result<Self> {
+        let ghostplane = Arc::new(GhostPlane::new(&config.ghostplane).await?);
 
-#[derive(Clone)]
-pub struct GhostBridgeClient {
-    client: Arc<RwLock<GhostChainServiceClient<Channel>>>,
-}
-
-impl GhostBridgeClient {
-    pub async fn connect(endpoint: String) -> Result<Self, Box<dyn std::error::Error>> {
-        let channel = Channel::from_shared(endpoint)?
-            .connect()
-            .await?;
-            
-        let client = GhostChainServiceClient::new(channel);
-        
         Ok(Self {
-            client: Arc::new(RwLock::new(client)),
+            ghostplane,
+            validator: TransactionValidator::new(config.validation_rules),
+            metrics: BridgeMetrics::new(),
         })
     }
-    
-    pub async fn resolve_domain(
-        &self, 
-        domain: String, 
-        record_types: Vec<String>
-    ) -> Result<DomainResponse, Status> {
-        let request = Request::new(DomainQuery {
-            domain,
-            record_types,
-        });
-        
-        let mut client = self.client.write().await;
-        let response = client.resolve_domain(request).await?;
-        
-        Ok(response.into_inner())
+
+    pub async fn bridge_transaction(&self, tx: Transaction) -> Result<BridgeReceipt> {
+        // Validate transaction
+        self.validator.validate(&tx)?;
+
+        // Record metrics
+        self.metrics.record_bridge_attempt();
+
+        // Submit to L2 via GhostPlane
+        let receipt = self.ghostplane.submit_transaction(tx).await?;
+
+        // Record success
+        self.metrics.record_bridge_success();
+
+        Ok(BridgeReceipt {
+            l1_tx_hash: tx.hash(),
+            l2_receipt: receipt,
+            bridged_at: std::time::SystemTime::now(),
+        })
     }
-    
-    // Connection pooling for high throughput
-    pub async fn resolve_domain_batch(
-        &self,
-        queries: Vec<DomainQuery>
-    ) -> Result<Vec<DomainResponse>, Status> {
-        let futures: Vec<_> = queries.into_iter()
-            .map(|query| self.resolve_domain(query.domain, query.record_types))
-            .collect();
-            
-        let results = futures::future::try_join_all(futures).await?;
-        Ok(results)
+
+    pub async fn query_cross_chain_state(&self, chain_id: u32, key: &[u8]) -> Result<Vec<u8>> {
+        // Route to appropriate L2 via GhostPlane
+        match chain_id {
+            1 => self.ghostplane.query_state(key).await,
+            _ => Err(Error::UnsupportedChain(chain_id)),
+        }
     }
 }
 ```
 
-### **Integration with GhostChain**
+### **Using GhostBridge in Your Application**
 
 ```rust
-// Add to your existing GhostChain Cargo.toml
+// In your GhostChain Cargo.toml
 [dependencies]
-ghostbridge-client = { path = "../ghostbridge/rust-client" }
-tonic = "0.12"
-prost = "0.13"
+ghostbridge = { path = "../ghostbridge" }
+ghostchain-shared = { path = "../ghostchain-shared" }
+tokio = { version = "1", features = ["full"] }
 
-// In your blockchain/mod.rs
-use ghostbridge_client::GhostBridgeClient;
+// In your application
+use ghostbridge::GhostBridge;
+use ghostchain_shared::types::Transaction;
 
-impl Blockchain {
-    pub async fn start_bridge_server(&self) -> Result<()> {
-        let bridge_client = GhostBridgeClient::connect(
-            "http://127.0.0.1:9090".to_string()
-        ).await?;
-        
-        // Register blockchain state queries
-        self.register_dns_queries(bridge_client).await?;
-        
-        Ok(())
-    }
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Initialize bridge
+    let bridge = GhostBridge::new(config).await?;
+
+    // Bridge a transaction to L2
+    let tx = Transaction::new(/* ... */);
+    let receipt = bridge.bridge_transaction(tx).await?;
+
+    println!("Transaction bridged: {:?}", receipt);
+
+    Ok(())
 }
 ```
 
